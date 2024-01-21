@@ -1,0 +1,162 @@
+#! /usr/bin/bash
+
+#######################################################################################################################
+# Copyright: brown.liuzan@outlook.com
+# Initial date: 2024-01-20
+#######################################################################################################################
+
+source ./scripts/printer.sh
+
+gRepoRoot="$(realpath $(dirname $0))"
+gRootOfMakefiles="${gRepoRoot}/build"
+gRootOfBins="${gRepoRoot}/output"
+declare -A gTargetDesciptions=(
+	['demo']='A dummy target to verify building system.'
+)
+declare -A gTgtSrcRoots=(
+	['demo']='demo'
+)
+declare -A gTgtBins=(
+	['demo']='demo'
+)
+
+function usage() {
+	print_bold_green "Usage: "
+	print_bold_green "    build_fstools [--cmake] [--clean] [-t|--targets <TargetList>] [-l|--list]"
+	print_bold_green "                  [-h|--help]"
+	print_bold_green "Notes: "
+	print_green "    --cmake, run cmake to reconstruct make files; defaults to run if no old make files"
+	print_green "    --clean, clean outputs of making targets"
+	print_green "    -t|--targets <TargetList>, comma separated targets; defautls to make all targets"
+	print_green "    -l|--list, list all making targets of fstools"
+	print_bold_green "Examples: "
+	print_green "1) make all targets without cleanup and cmaking"
+	print_green "    build_fstools"
+	print_green "2) clean old make files and reconstruct them without cleanup of making results"
+	print_green "    build_fstools --cmake"
+	print_green "3) clean up results of making process without reconstructing make files"
+	print_green "    build_fstools --clean"
+	print_green "4) make tgt1 and tgt2"
+	print_green "    build_fstools -t tgt1,tgt2"
+}
+
+function show_all_targets() {
+	print_green "All buildable targets:"
+	local vTarget
+	for vTarget in "${!gTargetDesciptions[@]}"; do
+		print_white "    -${vTarget}: ${gTargetDesciptions[${vTarget}]}"
+	done
+}
+
+function build_main() {
+	local vRc
+	local vCmd
+	local vNeedCmake=false
+	local vNeedClean=false
+	local vNeedBuild=false
+	local vTargetStr=""
+	local vTargets=()
+	for(( i=1; i<=$#; ++i)); do
+		case ${!i} in
+		'--cmake')
+			vNeedCmake=true
+			;;
+		'--clean')
+			vNeedClean=true
+			;;
+		'-t' | '--targets')
+			vNeedBuild=true
+			i=$((i + 1))
+			vTargetStr=${!i}
+			vTargets=(${vTargetStr//,/ })
+			;;
+		'-l'| '--list')
+			show_all_targets
+			return 0
+			;;
+		'-h' | '--help')
+			usage
+			return 0
+			;;
+		*)
+			usage
+			return -1
+			;;
+		esac
+	done
+
+	if ${vNeedCmake}; then
+		print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]Try to generate make files"
+		if [[ ! -d "${gRootOfMakefiles}" ]]; then
+			mkdir "${gRootOfMakefiles}"
+			vRc=$?
+			if [[ $? -ne 0 ]]; then
+				print_red "[$(date +%Y-%m-%d\ %H:%M:%S)]Failed to create root directory of make files: ${gRootOfMakefiles}"
+				return -1
+			fi
+			print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]Succeeded to create root directory of make files:	${gRootOfMakefiles}"
+		fi
+		cmake -S . -B "${gRootOfMakefiles}"
+		vRc=$?
+		if [[ ${vRc} -eq 0 ]]; then
+			print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]New make files generated into ${gRootOfMakefiles}"
+		fi
+	fi
+
+	if [[ ${vTargets[0]} == 'clean' ]]; then
+		vNeedBuild=false
+		vNeedClean=true
+	fi
+	if ${vNeedClean}; then
+		if [[ -e "${gRootOfBins}" ]]; then
+			rm -rf "${gRootOfBins}"
+			vRc=$?
+			if [[ ${vRc} -ne 0 ]]; then
+				print_red "[$(date +%Y-%m-%d\ %H:%M:%S)]Failed to remove directory of binaries: ${gRootOfBins}"
+				return -1
+			fi
+			print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]Succeeded to remove directory of binaries: ${gRootOfBins}"
+		fi
+		cmake --build ${gRootOfMakefiles} --target clean
+		vRc=$?
+		if [[ ${vRc} -ne 0 ]]; then
+			print_red "[$(date +%Y-%m-%d\ %H:%M:%S)]Failed to clean up built files."
+			return -1
+		fi
+		print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]Succeeded to clean up built files."
+	fi
+
+	if ${vNeedBuild}; then
+		local vTarget
+		local vBinary
+		if [[ ${vTargets[0]} == 'all' ]]; then
+			vTargets=()
+			for vTarget in "${!gTargetDesciptions[@]}"; do
+				vTargets+=(${vTarget})
+			done
+		fi
+		if [[ ! -d "${gRootOfBins}" ]]; then
+			mkdir -p "${gRootOfBins}"
+			vRc=$?
+			if [[ ${vRc} -ne 0 ]]; then
+				print_red "[$(date +%Y-%m-%d\ %H:%M:%S)]Failed to create dir of binaries: ${gRootOfBins}"
+				return -1
+			fi
+		fi
+		for vTarget in "${vTargets[@]}"; do
+			cmake --build ${gRootOfMakefiles} --target ${vTarget}
+			vRc=$?
+			if [[ ${vRc} -ne 0 ]]; then
+				print_red "[$(date +%Y-%m-%d\ %H:%M:%S)]Failed to build ${vTarget}"
+				return -1
+			fi
+			print_green "[$(date +%Y-%m-%d\ %H:%M:%S)]Succeeded to build ${vTarget}"
+			vBinary="${gRootOfMakefiles}/${gTgtSrcRoots[${vTarget}]}/${gTgtBins[${vTarget}]}"
+			cp -a --remove-destination "${vBinary}" "${gRootOfBins}"
+		done
+		print_green "Binaries in ${gRootOfBins}:"
+		ls -lha ${gRootOfBins}
+	fi
+}
+
+build_main "$@"
