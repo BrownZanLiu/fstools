@@ -72,4 +72,5 @@ FetchContent_MakeAvailable(googletest gflags)  # grpc)
 
 #### Add subdirectories ####
 add_subdirectory(demo)
+add_subdirectory(test)
 

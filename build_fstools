@@ -12,22 +12,28 @@ gRootOfMakefiles="${gRepoRoot}/build"
 gRootOfBins="${gRepoRoot}/output"
 declare -A gTargetDesciptions=(
 	['demo']='A dummy target to verify building system.'
+	['fstest']='Testing tools of file system'
 )
 declare -A gTgtSrcRoots=(
 	['demo']='demo'
+	['fstest']='test'
 )
 declare -A gTgtBins=(
 	['demo']='demo'
+	['fstest']='fstest'
 )
 
 function usage() {
 	print_bold_green "Usage: "
-	print_bold_green "    build_fstools [--cmake] [--clean] [-t|--targets <TargetList>] [-l|--list]"
-	print_bold_green "                  [-h|--help]"
+	print_bold_green "    build_fstools --cmake | "
+	print_bold_green "                  --clean | "
+	print_bold_green "                  -t|--targets <TargetList> | "
+	print_bold_green "                  -l|--list | "
+	print_bold_green "                  -h|--help"
 	print_bold_green "Notes: "
 	print_green "    --cmake, run cmake to reconstruct make files; defaults to run if no old make files"
 	print_green "    --clean, clean outputs of making targets"
-	print_green "    -t|--targets <TargetList>, comma separated targets; defautls to make all targets"
+	print_green "    -t|--targets <TargetList>, comma separated targets; all for all targets; clean for --clean"
 	print_green "    -l|--list, list all making targets of fstools"
 	print_bold_green "Examples: "
 	print_green "1) make all targets without cleanup and cmaking"
