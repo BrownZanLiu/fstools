@@ -22,6 +22,31 @@ std::basic_ostream<CharT, Char_Traits>& operator <<(
 	return os;
 }
 
+class NonvirtualBase {
+private:
+	int mId;
+
+public:
+	NonvirtualBase()
+	{
+		SetId(999);
+		std::cout << "Non-virtual base constructor: " << reinterpret_cast<unsigned long long>(this) << std::endl;
+		std::cout << "NonvirtualBase.mId: " << reinterpret_cast<unsigned long long>(&mId) << std::endl;
+		std::cout << "mId = " << GetId() << std::endl;
+	}
+
+	~NonvirtualBase()
+	{
+		std::cout << "Non-virtual base destructor: " << reinterpret_cast<unsigned long long>(this) << std::endl;
+		std::cout << "NonvirtualBase.mId: " << reinterpret_cast<unsigned long long>(&mId) << std::endl;
+		std::cout << "mId = " << GetId() << std::endl;
+	}
+
+public:
+	void SetId(int val) { mId = val; }
+	int GetId() { return mId; }
+};
+
 class VirtualBase {
 private:
 	int mVal;
@@ -150,7 +175,7 @@ public:
 	int GetIntD() { return mIntD; }
 };
 
-class TopA: public IntermediateA, public IntermediateB {
+class TopA: public IntermediateA, public IntermediateB, public NonvirtualBase {
 private:
 	int mTopA;
 
@@ -162,6 +187,7 @@ public:
 		SetIntA(5);
 		SetIntB(5);
 		SetTopA(5);
+		SetId(5);
 		std::cout << "TopA constructor: " << reinterpret_cast<unsigned long long>(this) << std::endl;
 		std::cout << "TopA.mTopA: " << reinterpret_cast<unsigned long long>(&mTopA) << std::endl;
 		std::cout << "mTopA = " << GetTopA() << std::endl;
@@ -179,7 +205,7 @@ public:
 	int GetTopA() { return mTopA; }
 };
 
-class TopB: public IntermediateC, public IntermediateD {
+class TopB: public IntermediateC, public IntermediateD, public NonvirtualBase  {
 private:
 	int mTopB;
 
@@ -190,6 +216,7 @@ public:
 		SetIntC(6);
 		SetIntD(6);
 		SetTopB(6);
+		SetId(6);
 		std::cout << "TopB constructor: " << reinterpret_cast<unsigned long long>(this) << std::endl;
 		std::cout << "TopB.mTopB: " << reinterpret_cast<unsigned long long>(&mTopB) << std::endl;
 		std::cout << "mTopB = " << GetTopB() << std::endl;
